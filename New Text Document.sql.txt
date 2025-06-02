@@ -1,0 +1,291 @@
+-- Database Schema for BookMyShow-like Movie Ticket Booking System
+
+-- Create Movies Table
+CREATE TABLE movies (
+    movie_id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    language VARCHAR(50) NOT NULL,
+    duration_minutes INT NOT NULL,
+    description TEXT NULL,
+    release_date DATE NULL,
+    genre VARCHAR(100) NULL
+);
+
+-- Create Theaters Table
+CREATE TABLE theaters (
+    theater_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100) NOT NULL,
+    zip_code VARCHAR(20) NOT NULL,
+    contact_number VARCHAR(20) NULL
+);
+
+-- Create Screens Table
+CREATE TABLE screens (
+    screen_id INT PRIMARY KEY AUTO_INCREMENT,
+    theater_id INT NOT NULL,
+    screen_number INT NOT NULL,
+    total_seats INT NOT NULL,
+    screen_type VARCHAR(50) NOT NULL,
+    FOREIGN KEY (theater_id) REFERENCES theaters(theater_id),
+    UNIQUE (theater_id, screen_number)
+);
+
+-- Create Seat Categories Table
+CREATE TABLE seat_categories (
+    seat_category_id INT PRIMARY KEY AUTO_INCREMENT,
+    category_name VARCHAR(50) NOT NULL,
+    description VARCHAR(255) NULL
+);
+
+-- Create Seats Table
+CREATE TABLE seats (
+    seat_id INT PRIMARY KEY AUTO_INCREMENT,
+    screen_id INT NOT NULL,
+    seat_number VARCHAR(10) NOT NULL,
+    row_id VARCHAR(5) NOT NULL,
+    seat_category_id INT NOT NULL,
+    FOREIGN KEY (screen_id) REFERENCES screens(screen_id),
+    FOREIGN KEY (seat_category_id) REFERENCES seat_categories(seat_category_id),
+    UNIQUE (screen_id, seat_number, row_id)
+);
+
+-- Create Shows Table
+CREATE TABLE shows (
+    show_id INT PRIMARY KEY AUTO_INCREMENT,
+    movie_id INT NOT NULL,
+    screen_id INT NOT NULL,
+    show_date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    is_full BOOLEAN DEFAULT FALSE,
+    status ENUM('Available', 'Almost Full', 'Housefull', 'Cancelled') DEFAULT 'Available',
+    FOREIGN KEY (movie_id) REFERENCES movies(movie_id),
+    FOREIGN KEY (screen_id) REFERENCES screens(screen_id)
+);
+
+-- Create Seat Pricing Table
+CREATE TABLE seat_pricing (
+    pricing_id INT PRIMARY KEY AUTO_INCREMENT,
+    show_id INT NOT NULL,
+    seat_category_id INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (show_id) REFERENCES shows(show_id),
+    FOREIGN KEY (seat_category_id) REFERENCES seat_categories(seat_category_id),
+    UNIQUE (show_id, seat_category_id)
+);
+
+-- Create Users Table
+CREATE TABLE users (
+    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    phone_number VARCHAR(20) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create Bookings Table
+CREATE TABLE bookings (
+    booking_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    show_id INT NOT NULL,
+    booking_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_amount DECIMAL(10,2) NOT NULL,
+    payment_status ENUM('Pending', 'Completed', 'Failed', 'Refunded') DEFAULT 'Pending',
+    booking_status ENUM('Confirmed', 'Cancelled') DEFAULT 'Confirmed',
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (show_id) REFERENCES shows(show_id)
+);
+
+-- Create Booked Seats Table
+CREATE TABLE booked_seats (
+    booked_seat_id INT PRIMARY KEY AUTO_INCREMENT,
+    booking_id INT NOT NULL,
+    seat_id INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (booking_id) REFERENCES bookings(booking_id),
+    FOREIGN KEY (seat_id) REFERENCES seats(seat_id),
+    UNIQUE (booking_id, seat_id)
+);
+
+-- Add indexes to improve query performance
+CREATE INDEX idx_shows_date ON shows(show_date);
+CREATE INDEX idx_screens_theater ON screens(theater_id);
+CREATE INDEX idx_shows_movie ON shows(movie_id);
+CREATE INDEX idx_bookings_user ON bookings(user_id);
+CREATE INDEX idx_bookings_show ON bookings(show_id);
+CREATE INDEX idx_booked_seats_booking ON booked_seats(booking_id);
+
+
+
+-- Sample Data for BookMyShow Database
+
+-- Insert sample movies
+INSERT INTO movies (title, language, duration_minutes, description, release_date, genre) VALUES
+('Dasara', 'Telugu', 150, 'A thrilling drama', '2023-03-30', 'Action/Drama'),
+('Kisi Ka Bhai Kisi Ki Jaan', 'Hindi', 145, 'Family drama', '2023-04-21', 'Comedy/Drama'),
+('Tu Jhoothi Main Makkaar', 'Hindi', 150, 'Romantic comedy', '2023-03-08', 'Romance/Comedy'),
+('Avatar: The Way of Water', 'English', 192, 'Sci-fi adventure', '2022-12-16', 'Sci-Fi/Action');
+
+-- Insert sample theaters
+INSERT INTO theaters (name, address, city, state, zip_code, contact_number) VALUES
+('PVR: Nexus', '100 Mall Road', 'Mumbai', 'Maharashtra', '400001', '9876543210'),
+('INOX Cinemas', '200 Theater Street', 'Delhi', 'Delhi', '110001', '8765432109'),
+('Cinepolis', '300 Movie Avenue', 'Bangalore', 'Karnataka', '560001', '7654321098');
+
+-- Insert sample screens
+INSERT INTO screens (theater_id, screen_number, total_seats, screen_type) VALUES
+(1, 1, 120, 'Standard'),
+(1, 2, 100, '3D'),
+(2, 1, 150, 'IMAX'),
+(2, 2, 120, 'Standard'),
+(3, 1, 100, 'Standard');
+
+-- Insert seat categories
+INSERT INTO seat_categories (category_name, description) VALUES
+('Standard', 'Regular seating'),
+('Premium', 'Better viewing experience'),
+('Recliner', 'Luxury recliner seats');
+
+-- Insert sample seats
+INSERT INTO seats (screen_id, seat_number, row_id, seat_category_id) VALUES
+-- Screen 1, Theater 1
+(1, '1', 'A', 1),
+(1, '2', 'A', 1),
+(1, '3', 'A', 1),
+(1, '1', 'B', 1),
+(1, '2', 'B', 1),
+(1, '3', 'B', 1),
+(1, '1', 'C', 2),
+(1, '2', 'C', 2),
+(1, '3', 'C', 2),
+-- Screen 2, Theater 1
+(2, '1', 'A', 1),
+(2, '2', 'A', 1),
+(2, '1', 'B', 1),
+(2, '2', 'B', 1),
+(2, '1', 'C', 3),
+(2, '2', 'C', 3);
+
+-- Insert sample shows
+INSERT INTO shows (movie_id, screen_id, show_date, start_time, end_time, status) VALUES
+(1, 1, '2023-05-25', '10:30:00', '13:00:00', 'Available'),
+(1, 1, '2023-05-25', '13:30:00', '16:00:00', 'Available'),
+(1, 1, '2023-05-25', '16:30:00', '19:00:00', 'Almost Full'),
+(2, 2, '2023-05-25', '11:00:00', '13:30:00', 'Available'),
+(2, 2, '2023-05-25', '14:00:00', '16:30:00', 'Available'),
+(2, 2, '2023-05-25', '17:00:00', '19:30:00', 'Available'),
+(3, 1, '2023-05-25', '19:30:00', '22:00:00', 'Available'),
+(4, 2, '2023-05-25', '20:00:00', '23:15:00', 'Available');
+
+-- Insert sample seat pricing
+INSERT INTO seat_pricing (show_id, seat_category_id, price) VALUES
+(1, 1, 150.00),
+(1, 2, 250.00),
+(1, 3, 350.00),
+(2, 1, 150.00),
+(2, 2, 250.00),
+(2, 3, 350.00),
+(3, 1, 180.00),
+(3, 2, 280.00),
+(3, 3, 380.00);
+
+
+
+
+-- Queries for BookMyShow Database
+
+-- Query to list all shows on a given date at a given theater with their showtimes
+SELECT 
+    m.title AS movie_title,
+    m.language,
+    m.duration_minutes,
+    sh.show_date,
+    sh.start_time,
+    sh.end_time,
+    sc.screen_number,
+    sc.screen_type,
+    sh.status
+FROM 
+    shows sh
+JOIN 
+    movies m ON sh.movie_id = m.movie_id
+JOIN 
+    screens sc ON sh.screen_id = sc.screen_id
+JOIN 
+    theaters th ON sc.theater_id = th.theater_id
+WHERE 
+    sh.show_date = '2023-05-25' -- Parameter 1: Show date
+    AND th.theater_id = 1        -- Parameter 2: Theater ID
+ORDER BY 
+    sh.start_time ASC;
+
+-- Query to find available seats for a specific show
+SELECT 
+    s.seat_number,
+    s.row_id,
+    sc.category_name,
+    sp.price
+FROM 
+    seats s
+JOIN 
+    seat_categories sc ON s.seat_category_id = sc.seat_category_id
+JOIN 
+    seat_pricing sp ON sp.seat_category_id = sc.seat_category_id
+LEFT JOIN 
+    booked_seats bs ON bs.seat_id = s.seat_id
+WHERE 
+    s.screen_id = (SELECT screen_id FROM shows WHERE show_id = ?) -- Parameter: Show ID
+    AND bs.booked_seat_id IS NULL;
+
+-- Query to get booking history for a user
+SELECT 
+    b.booking_id,
+    m.title,
+    th.name AS theater,
+    sh.show_date,
+    sh.start_time,
+    b.total_amount,
+    b.booking_status,
+    b.payment_status
+FROM 
+    bookings b
+JOIN 
+    shows sh ON b.show_id = sh.show_id
+JOIN 
+    movies m ON sh.movie_id = m.movie_id
+JOIN 
+    screens sc ON sh.screen_id = sc.screen_id
+JOIN 
+    theaters th ON sc.theater_id = th.theater_id
+WHERE 
+    b.user_id = ? -- Parameter: User ID
+ORDER BY 
+    b.booking_date DESC;
+
+-- Query to get revenue by theater and date range
+SELECT 
+    th.name AS theater,
+    DATE(b.booking_date) AS booking_date,
+    COUNT(DISTINCT b.booking_id) AS total_bookings,
+    SUM(b.total_amount) AS total_revenue
+FROM 
+    bookings b
+JOIN 
+    shows sh ON b.show_id = sh.show_id
+JOIN 
+    screens sc ON sh.screen_id = sc.screen_id
+JOIN 
+    theaters th ON sc.theater_id = th.theater_id
+WHERE 
+    b.booking_date BETWEEN ? AND ? -- Parameters: Start date and End date
+    AND b.payment_status = 'Completed'
+GROUP BY 
+    th.theater_id,
+    DATE(b.booking_date)
+ORDER BY 
+    th.name,
+    booking_date;
